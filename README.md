@@ -2,10 +2,11 @@ Steps to Installation:
 
 https://github.com/BoianaRajaRamesh/AccuknoxTask.git
 pip install -r requirements.txt
+Create a MySQL database, then update the database details in the manage.py file in the root folder with the new database name, username, and password.
 python manage.py migrate
 python manage.py runserver
 
-//**********************************\*\***********************************//
+//******\*\*\*\*******\*\*******\*\*\*\*******\*\*******\*\*\*\*******\*\*******\*\*\*\*******//
 
 API Endpoints:
 
