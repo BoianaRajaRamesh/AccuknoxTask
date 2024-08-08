@@ -8,15 +8,21 @@ from django.db.models import Q
 from .models import FriendRequest
 from django.contrib.auth import get_user_model
 from .serializers import *
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 class SendFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
-
+    @swagger_auto_schema(request_body=FriendRequestSerializer)
     def post(self, request):
         serializer = FriendRequestSerializer(data=request.data)
         if serializer.is_valid():
             from_user = request.user
             to_user = serializer.validated_data['to_user']
+
+            friend_request = FriendRequest.objects.filter((Q(from_user = from_user) and Q(to_user = to_user)) | (Q(from_user = to_user) and Q(to_user = from_user)))
+            if friend_request.exists():
+                return Response({"error": "You both are friends."}, status=status.HTTP_400_BAD_REQUEST)
             
             # Check if user has sent more than 3 requests in the last minute
             one_minute_ago = timezone.now() - timedelta(minutes=1)
@@ -32,20 +38,21 @@ class SendFriendRequestView(APIView):
 
 class AcceptRejectFriendRequestView(APIView):
     permission_classes = [IsAuthenticated]
-
-    def put(self, request, pk):
-        try:
-            friend_request = FriendRequest.objects.get(pk=pk)
-        except FriendRequest.DoesNotExist:
-            return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if friend_request.to_user != request.user:
-            return Response({"error": "You don't have permission to perform this action."}, 
-                            status=status.HTTP_403_FORBIDDEN)
-
-        serializer = FriendRequestSerializer(friend_request, data=request.data, partial=True)
+    @swagger_auto_schema(request_body=ManageFriendRequestSerializer)
+    def put(self, request):
+        serializer = ManageFriendRequestSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            id = serializer.validated_data['id']
+            try:
+                friend_request = FriendRequest.objects.get(pk=id)
+            except FriendRequest.DoesNotExist:
+                return Response({"error": "Friend request not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if friend_request.to_user != request.user:
+                return Response({"error": "You don't have permission to perform this action."}, 
+                                status=status.HTTP_403_FORBIDDEN)
+            friend_request.status = serializer.validated_data['status']
+            friend_request.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

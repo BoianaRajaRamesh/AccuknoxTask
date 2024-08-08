@@ -23,3 +23,10 @@ class FriendListSerializer(serializers.ModelSerializer):
         if obj.from_user == request.user:
             return UserSerializer(obj.to_user).data
         return UserSerializer(obj.from_user).data
+    
+
+class ManageFriendRequestSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField()
+    class Meta:
+        model = FriendRequest
+        fields = ('id', 'status')
